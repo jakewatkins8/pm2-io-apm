@@ -6,10 +6,15 @@ import Autocast from './utils/autocast'
 import * as path from 'path'
 import * as fs from 'fs'
 
+
 export default class Configuration {
 
   static configureModule (opts) {
-    if (ServiceManager.get('transport')) ServiceManager.get('transport').setOptions(opts)
+    console.log('Setting up transport in configureModule')
+    if (ServiceManager.get('transport')) {
+      console.log('Setting up options for transport in configureModule')
+      ServiceManager.get('transport').setOptions(opts)
+    }
   }
 
   static findPackageJson () {

@@ -2,7 +2,7 @@
 import { Action } from './actions'
 import { Metric, InternalMetric } from './metrics'
 import { IPCTransport } from '../transports/IPCTransport'
-// import { WebsocketTransport } from '../transports/WebsocketTransport'
+import { WebsocketTransport } from '../transports/WebsocketTransport'
 import { EventEmitter2 } from 'eventemitter2'
 
 export class TransportConfig {
@@ -82,19 +82,23 @@ export interface Transport extends EventEmitter2 {
 export function createTransport (name: string, config: TransportConfig): Transport {
   const transport = new IPCTransport()
   transport.init(config)
-  return transport
-  // switch (name) {
-  //   case 'ipc': {
-  //     const transport = new IPCTransport()
-  //     transport.init(config)
-  //     return transport
-  //   }
-  //   case 'websocket': {
-  //     const transport = new WebsocketTransport()
-  //     transport.init(config)
-  //     return transport
-  //   }
-  // }
-  // console.error(`Failed to find transport implementation: ${name}`)
-  // return process.exit(1)
+  // return transport
+  switch (name) {
+    case 'ipc': {
+      console.error(`Creating IPCTransport transport implementation: ${name}`)
+      console.log("IPC transport config:", config)
+      const transport = new IPCTransport()
+      transport.init(config)
+      return transport
+    }
+    case 'websocket': {
+      console.error(`Creating WebsocketTransport transport implementation: ${name}`)
+      console.log("ws transport config:", config)
+      const transport = new WebsocketTransport()
+      transport.init(config)
+      return transport
+    }
+  }
+  console.error(`Failed to find transport implementation: ${name}`)
+  return process.exit(1)
 }

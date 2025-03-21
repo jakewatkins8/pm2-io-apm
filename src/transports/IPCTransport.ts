@@ -1,18 +1,24 @@
 import { Transport, TransportConfig } from '../services/transport'
-import * as Debug from 'debug'
 import { Action } from '../services/actions'
 import { InternalMetric } from '../services/metrics'
 import { EventEmitter2 } from 'eventemitter2'
 import * as cluster from 'cluster'
 
+import { config as configDotEnv } from 'dotenv'
+
+configDotEnv()
+// console.log('process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME:',
+//   [process.env.PM2_SECRET_KEY, process.env.PM2_PUBLIC_KEY, process.env.PM2_APP_NAME])
+
 export class IPCTransport extends EventEmitter2 implements Transport {
 
   private initiated: Boolean = false // tslint:disable-line
-  private logger: Function = Debug('axm:transport:ipc')
+  private logger: Function = (...args) => console.log('[IPCTransport]', ...args)
+  // Debug('axm:transport:ipc')
   private onMessage: any | undefined
   private autoExitHandle: NodeJS.Timer | undefined
 
-  init (config?: TransportConfig): Transport {
+  init(config?: TransportConfig): Transport {
     this.logger('Init new transport service')
     if (this.initiated === true) {
       console.error(`Trying to re-init the transport, please avoid`)
@@ -34,7 +40,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
     return this
   }
 
-  private autoExitHook () {
+  private autoExitHook() {
     // clean listener if event loop is empty
     // important to ensure apm will not prevent application to stop
     this.autoExitHandle = setInterval(() => {
@@ -44,7 +50,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
         let handlers: any = currentProcess._getActiveHandles().map(h => h.constructor.name)
 
         if (handlers.includes('Pipe') === true &&
-            handlers.includes('Socket') === true) {
+          handlers.includes('Socket') === true) {
           process.removeListener('message', this.onMessage)
           let tmp = setTimeout(_ => {
             this.logger(`Still alive, listen back to IPC`)
@@ -58,7 +64,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
     this.autoExitHandle.unref()
   }
 
-  setMetrics (metrics: InternalMetric[]) {
+  setMetrics(metrics: InternalMetric[]) {
     const serializedMetric = metrics.reduce((object, metric: InternalMetric) => {
       if (typeof metric.name !== 'string') return object
       object[metric.name] = {
@@ -72,7 +78,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
     this.send('axm:monitor', serializedMetric)
   }
 
-  addAction (action: Action) {
+  addAction(action: Action) {
     this.logger(`Add action: ${action.name}:${action.type}`)
     this.send('axm:action', {
       action_name: action.name,
@@ -82,28 +88,74 @@ export class IPCTransport extends EventEmitter2 implements Transport {
     })
   }
 
-  setOptions (options) {
+  setOptions(options) {
     this.logger(`Set options: [${Object.keys(options).join(',')}]`)
     return this.send('axm:option:configuration', options)
   }
 
-  send (channel, payload) {
-    if (typeof process.send !== 'function') return -1
+  send(channel, payload) {
+    console.log('In send fn for transport with following channel and payload. Channel:', channel, 'payload:', String(payload || '').substring(0, 50) + '...')
+
+
+    // child_process?
+    // console.log(process.parent)
+
+    if (typeof process.send !== 'function') {
+      // const resultMsg = ['[FAILURE]', channel, String(payload || '').substring(0, 50) + '...', '- typeof process.send !== function - returning -1 for send'].join(', ')
+      // console.log('[FAILURE]', channel, String(payload || '').substring(0, 50) + '...', '- typeof process.send !== function - returning -1 for send')
+      // console.log('[FAILURE] process info:')
+      // try {
+      //   console.log(JSON.stringify(process))
+      // }
+      // catch (error) {
+      //   console.log('cannot stringify - instead:')
+      //   const { argv, connected, cwd, pid, ppid } = process || {}
+      //   console.log({
+      //     ...{ _debug: resultMsg }, ...{
+      //       argv, connected, cwd, env: '(not logged)', pid, ppid, mainModule: '(not logged)'
+      //     }
+      //   })
+      return -1
+    }
     if (process.connected === false) {
       console.error('Process disconnected from parent! (not connected)')
       return process.exit(1)
     }
 
     try {
+
+      // if (channel === 'process:exception') {
+      //   console.log('!!!! - in send fn, trying to send a process exception.')
+      // }
       process.send({ type: channel, data: payload })
+      const resultMsg = ['[SUCCESS] sent process.send(', {
+        type: channel,
+        // data: JSON.stringify(payload).substring(0, 50) + '(...)' 
+      }, ')'].join(', ')
+      // console.log(resultMsg)
+      // try {
+      //   console.log('[SUCCESS] process info:')
+      //   console.log(JSON.stringify(process))
+      // }
+      // catch (error) {
+      //   console.log('cannot stringify - instead:')
+      //   const { argv, connected, cwd, pid, ppid } = process || {}
+      //   console.log({
+      //     ...{ _debug: resultMsg }, ...{
+      //       argv, connected, cwd, env: '(not logged)', pid, ppid, mainModule: '(not logged)'
+      //     }
+      //   })
+      // }
+      // console.log('process.argv:', process.argv)
     } catch (err) {
       this.logger('Process disconnected from parent !')
       this.logger(err)
       return process.exit(1)
     }
   }
+  // }
 
-  destroy () {
+  destroy() {
     if (this.onMessage !== undefined) {
       process.removeListener('message', this.onMessage)
     }

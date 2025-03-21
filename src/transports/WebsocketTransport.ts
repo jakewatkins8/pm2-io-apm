@@ -1,125 +1,134 @@
-// import { Transport, TransportConfig } from '../services/transport'
-// import Debug from 'debug'
-// import { Action } from '../services/actions'
-// import { InternalMetric } from '../services/metrics'
-// import { EventEmitter2 } from 'eventemitter2'
+import { Transport, TransportConfig } from '../services/transport'
+import Debug from 'debug'
+import { Action } from '../services/actions'
+import { InternalMetric } from '../services/metrics'
+import { EventEmitter2 } from 'eventemitter2'
+import { randomBytes } from 'crypto'
 
-// class SerializedAction {
-//   action_name: string // tslint:disable-line
-//   action_type: string // tslint:disable-line
-//   opts: Object | null | undefined
-//   arity: number
-// }
+class SerializedAction {
+  action_name: string // tslint:disable-line
+  action_type: string // tslint:disable-line
+  opts: Object | null | undefined
+  arity: number
+}
 
-// export class ProcessMetadata {
-//   axm_actions: SerializedAction[] // tslint:disable-line
-//   axm_monitor: Object // tslint:disable-line
-//   axm_options: Object // tslint:disable-line
-//   axm_dynamic?: Object // tslint:disable-line
-//   interpreter?: string
-//   versionning?: Object
-// }
+export class ProcessMetadata {
+  axm_actions: SerializedAction[] // tslint:disable-line
+  axm_monitor: Object // tslint:disable-line
+  axm_options: Object // tslint:disable-line
+  axm_dynamic?: Object // tslint:disable-line
+  interpreter?: string
+  versionning?: Object
+}
 
-// export class WebsocketTransport extends EventEmitter2 implements Transport {
+export class WebsocketTransport extends EventEmitter2 implements Transport {
 
-//   private config: TransportConfig
-//   private agent: any
-//   private process: ProcessMetadata
-//   private initiated: Boolean = false // tslint:disable-line
-//   private logger: Function = Debug('axm:transport:websocket')
+  private config?: TransportConfig
+  private agent: any
+  private process: ProcessMetadata
+  private initiated: Boolean = false // tslint:disable-line
+  /** @property a short ID just to identify different instances in debugging */
+  private nameTag: string | undefined
+  private logger: Function = (...args) => console.log('[WS]' + (this.nameTag ? `(${this.nameTag}) ` : '') + (this.config?.appName ? `[${this.config?.appName}]` : ''), ...args)
 
-//   init (config: TransportConfig): Transport {
-//     if (this.initiated === true) {
-//       console.error(`Trying to re-init the transport, please avoid`)
-//       return this
-//     }
-//     this.initiated = true
-//     const AgentNode = require('@pm2/agent-node')
-//     this.logger('Init new transport service')
-//     this.config = config
-//     this.process = {
-//       axm_actions: [],
-//       axm_options: {},
-//       axm_monitor: {}
-//     }
-//     this.agent = new AgentNode(this.config, this.process)
-//     if (this.agent instanceof Error) {
-//       throw this.agent
-//     }
-//     this.agent.sendLogs = config.sendLogs || false
-//     this.agent.start()
-//     this.agent.transport.on('**', (data) => {
-//       this.logger(`Received reverse message from websocket transport`)
-//       this.emit('data', data)
-//     })
-//     this.logger('Agent launched')
-//     return this
-//   }
 
-//   setMetrics (metrics: InternalMetric[]) {
-//     return this.process.axm_monitor = metrics.reduce((object, metric: InternalMetric) => {
-//       if (typeof metric.name !== 'string') return object
-//       object[metric.name] = {
-//         unit: metric.unit,
-//         type: metric.id,
-//         value: metric.value
-//       }
-//       if (metric.historic == false)
-//         object[metric.name] = false
-//       return object
-//     }, {})
-//   }
+  // Debug('axm:transport:websocket')
 
-//   addAction (action: Action) {
-//     this.logger(`Add action: ${action.name}:${action.type}`)
-//     const serializedAction: SerializedAction = {
-//       action_name: action.name,
-//       action_type: action.type,
-//       arity: action.arity,
-//       opts: action.opts
-//     }
-//     this.process.axm_actions.push(serializedAction)
-//   }
+  init(config: TransportConfig): Transport {
+    this.logger('Initializing websocket transport with initial config of value:', config)
+    if (this.initiated === true) {
+      console.error(`Trying to re-init the transport, please avoid`)
+      return this
+    }
+    this.initiated = true
+    const AgentNode = require('@pm2/agent-node')
+    this.nameTag = randomBytes(3).toString('hex')
+    this.logger('Init\'ing new transport service', `(instance ${this.nameTag})`)
+    this.config = config
+    this.process = {
+      axm_actions: [],
+      axm_options: {},
+      axm_monitor: {}
+    }
+    this.agent = new AgentNode(this.config, this.process)
+    if (this.agent instanceof Error) {
+      throw this.agent
+    }
+    this.agent.sendLogs = config.sendLogs || false
+    this.agent.start()
+    this.agent.transport.on('**', (data) => {
+      this.logger(`Received reverse message from websocket transport`)
+      this.emit('data', data)
+    })
+    this.logger('Agent launched')
+    return this
+  }
 
-//   setOptions (options) {
-//     this.logger(`Set options: [${Object.keys(options).join(',')}]`)
-//     return this.process.axm_options = Object.assign(this.process.axm_options, options)
-//   }
+  setMetrics(metrics: InternalMetric[]) {
+    return this.process.axm_monitor = metrics.reduce((object, metric: InternalMetric) => {
+      if (typeof metric.name !== 'string') return object
+      object[metric.name] = {
+        unit: metric.unit,
+        type: metric.id,
+        value: metric.value
+      }
+      if (metric.historic == false)
+        object[metric.name] = false
+      return object
+    }, {})
+  }
 
-//   private getFormattedPayload (channel: string, payload: any) {
-//     // Reformat for backend
-//     switch (channel) {
-//       case 'axm:reply':
-//         return { data: payload }
-//       case 'process:exception':
-//         return { data: payload }
-//       case 'human:event': {
-//         const name = payload.__name
-//         payload.__name = undefined
-//         return { name, data: payload }
-//       }
-//     }
-//     return payload
-//   }
+  addAction(action: Action) {
+    this.logger(`Adding action: ${action.name}:${action.type}`)
+    const serializedAction: SerializedAction = {
+      action_name: action.name,
+      action_type: action.type,
+      arity: action.arity,
+      opts: action.opts
+    }
+    this.process.axm_actions.push(serializedAction)
+  }
 
-//   send (channel: string, payload: Object) {
-//     return this.agent.send(channel, this.getFormattedPayload(channel, payload)) ? 0 : -1
-//   }
+  setOptions(options) {
+    this.logger(`Setting options: [${Object.keys(options).join(',')}]`)
+    return this.process.axm_options = Object.assign(this.process.axm_options, options)
+  }
 
-//   destroy () {
-//     this.agent.transport.disconnect()
-//     this.logger('destroy')
-//   }
+  private getFormattedPayload(channel: string, payload: any) {
+    // Reformat for backend
+    switch (channel) {
+      case 'axm:reply':
+        return { data: payload }
+      case 'process:exception':
+        return { data: payload }
+      case 'human:event': {
+        const name = payload.__name
+        payload.__name = undefined
+        return { name, data: payload }
+      }
+    }
+    return payload
+  }
 
-//   removeListener () {
-//     return this.agent.transport.removeListener.apply(this, arguments)
-//   }
+  send(channel: string, payload: Object) {
+    this.logger('in send fn, for channel:', channel)
+    return this.agent.send(channel, this.getFormattedPayload(channel, payload)) ? 0 : -1
+  }
 
-//   removeAllListeners () {
-//     return this.agent.transport.removeAllListeners.apply(this, arguments)
-//   }
+  destroy() {
+    this.agent.transport.disconnect()
+    this.logger('destroying this WS transport.')
+  }
 
-//   on () {
-//     return this.agent.transport.on.apply(this, arguments)
-//   }
-// }
+  removeListener() {
+    return this.agent.transport.removeListener.apply(this, arguments)
+  }
+
+  removeAllListeners() {
+    return this.agent.transport.removeAllListeners.apply(this, arguments)
+  }
+
+  on() {
+    return this.agent.transport.on.apply(this, arguments)
+  }
+}

@@ -2,6 +2,9 @@
 import IO, { IOConfig } from '../pmx'
 const IO_KEY = Symbol.for('@pm2/io')
 
+console.log('IO_KEY:', IO_KEY)
+console.log(IO_KEY)
+
 export class Entrypoint {
   private io: IO
 
@@ -25,7 +28,12 @@ export class Entrypoint {
           }, code, signal)
         })
 
-        if (process && process.send) process.send('ready')
+        if (process && process.send) {
+
+          console.log('in pm2-io-apm entrypoint constructor - about to send process "ready"')
+
+          process.send('ready')
+        }
       })
     } catch (e) {
       // properly exit in case onStart/onStop method has not been override
@@ -58,6 +66,7 @@ export class Entrypoint {
   }
 
   conf (): IOConfig | undefined {
+    console.log('in this.conf() - about to return undefined?')
     return undefined
   }
 }

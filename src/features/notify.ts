@@ -32,7 +32,8 @@ const optionsDefault: NotifyOptions = {
 
 export class NotifyFeature implements Feature {
 
-  private logger: Function = Debug('axm:features:notify')
+  // TODO - make logs visible
+  private logger: Function = (...args) => console.log('[notify]', ...args)
   private transport: Transport | undefined
   private cache: Cache
   private stackParser: StackTraceParser
@@ -55,8 +56,11 @@ export class NotifyFeature implements Feature {
     this.cache = new Cache({
       miss: (key) => {
         try {
+          console.log('In notify cache, trying to resolve key of value:', key, ' - as a path...')
           const content = fs.readFileSync(path.resolve(key))
-          return content.toString().split(/\r?\n/)
+          const resolved = content.toString().split(/\r?\n/)
+          console.log('Got final value as', resolved)
+          return resolved;
         } catch (err) {
           this.logger('Error while trying to get file from FS : %s', err.message || err)
           return null
@@ -118,9 +122,9 @@ export class NotifyFeature implements Feature {
 
     const safeError = this.getSafeError(err)
     let stackContext: StackContext | null = null
-    if (err instanceof Error) {
-      stackContext = this.stackParser.retrieveContext(err)
-    }
+    // if (err instanceof Error) {
+    //   stackContext = this.stackParser.retrieveContext(err)
+    // }
 
     const payload = Object.assign({
       message: safeError.message,
@@ -141,9 +145,9 @@ export class NotifyFeature implements Feature {
 
     const safeError = this.getSafeError(error)
     let stackContext: StackContext | null = null
-    if (error instanceof Error) {
-      stackContext = this.stackParser.retrieveContext(error)
-    }
+    // if (error instanceof Error) {
+    //   stackContext = this.stackParser.retrieveContext(error)
+    // }
 
     const payload = Object.assign({
       message: safeError.message,
@@ -167,9 +171,11 @@ export class NotifyFeature implements Feature {
 
     const safeError = this.getSafeError(error)
     let stackContext: StackContext | null = null
-    if (error instanceof Error) {
-      stackContext = this.stackParser.retrieveContext(error)
-    }
+    // if (error instanceof Error) {
+    //   stackContext = {
+    //   }
+    //   // this.stackParser.retrieveContext(error)
+    // }
 
     const payload = Object.assign({
       message: safeError.message,

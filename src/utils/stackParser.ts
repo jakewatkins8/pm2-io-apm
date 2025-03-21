@@ -5,8 +5,8 @@ export type CacheOptions = {
   ttl?: number
 }
 export type StackContext = {
-  callsite: string,
-  context: string
+  callsite?: string,
+  context?: string,
 }
 
 export type FrameMetadata = {
@@ -125,7 +125,7 @@ export class StackTraceParser {
     }
   }
 
-  parse (stack: FrameMetadata[]): StackContext | null {
+  parse(stack: FrameMetadata[], xLocation?: string): StackContext | null {
     if (stack.length === 0) return null
 
     const userFrame = stack.find(frame => {
@@ -135,7 +135,9 @@ export class StackTraceParser {
     if (userFrame === undefined) return null
 
     // get the whole context (all lines) and cache them if necessary
+    console.log('in stackParser parse fn - trying to get userFrame.file_name from cache, of value:', userFrame.file_name || ('no value'))
     const context = this.cache.get(userFrame.file_name) as string[] | null
+    console.log('obtained context as:', String(context))
     const source: string[] = []
     if (context === null || context.length === 0) return null
       // get line before the call
@@ -159,27 +161,31 @@ export class StackTraceParser {
     }
   }
 
-  retrieveContext (error: Error): StackContext | null {
-    if (error.stack === undefined) return null
-    const frameRegex = /(\/[^\\\n]*)/g
-    let tmp: any
-    let frames: string[] = []
+  // StackContext | 
+  retrieveContext(error: Error): null {
+    // TODO - this is problematic for our implementation, so we are foregoing it,
+    // since we can still receive and read the stack normally for any errors
+    return null;
+    // // if (error.stack === undefined) return null
+    // const frameRegex = /(\/[^\\\n]*)/g
+    // let tmp: any
+    // let frames: string[] = []
 
-    while ((tmp = frameRegex.exec(error.stack))) {  // tslint:disable-line
-      frames.push(tmp[1])
-    }
-    const stackFrames = frames.map((callsite) => {
-      if (callsite[callsite.length - 1] === ')') {
-        callsite = callsite.substr(0, callsite.length - 1)
-      }
-      let location = callsite.split(':')
+    // while ((tmp = frameRegex.exec(error.stack))) {  // tslint:disable-line
+    //   frames.push(tmp[1])
+    // }
+    // const stackFrames = frames.map((callsite) => {
+    //   if (callsite[callsite.length - 1] === ')') {
+    //     callsite = callsite.substr(0, callsite.length - 1)
+    //   }
+    //   let location = callsite.split(':')
 
-      return {
-        file_name: location[0],
-        line_number: parseInt(location[1], 10)
-      } as FrameMetadata
-    })
+    //   return {
+    //     file_name: location[0],
+    //     line_number: parseInt(location[1], 10)
+    //   } as FrameMetadata
+    // })
 
-    return this.parse(stackFrames)
+    // return this.parse(stackFrames)
   }
 }

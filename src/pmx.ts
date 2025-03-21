@@ -19,7 +19,18 @@ import { MetricConfig } from './features/metrics'
 import { ProfilingConfig } from './features/profiling'
 import { RuntimeStatsService } from './services/runtimeStats'
 import { Entrypoint } from './features/entrypoint'
+import { readFileSync } from 'fs'
+import { config as configDotEnv } from 'dotenv'
+import { resolve as resolvePath } from 'path'
 
+// from 'build/main/pmx.js'
+// console.log('[pmx] - Location of file:', __dirname)
+// console.log('[pmx] location of .env?', resolvePath(__dirname, '../../.env'))
+// configDotEnv({ path: '../../.env' })
+// console.log('process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME:',
+//   [process.env.PM2_SECRET_KEY, process.env.PM2_PUBLIC_KEY, process.env.PM2_APP_NAME])
+
+console.log('process.env.PARENT_ENV:', process.env.PARENT_ENV)
 export class IOConfig {
   /**
    * Automatically catch unhandled errors
@@ -50,21 +61,51 @@ export class IOConfig {
   apmOptions?: TransportConfig
 }
 
+const pm2AgentData = JSON.parse(readFileSync(`${process.env.PM2_HOME}/agent.json5`).toString())
+
+// console.log('pm2 agent data:', pm2AgentData)
+// process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME
+// TODO - this is ludicrous, but at this point...
 export const defaultConfig: IOConfig = {
   catchExceptions: true,
   profiling: true,
   metrics: {
-    v8: true,
+    v8: false,
     network: false,
-    eventLoop: true,
-    runtime: true,
-    http: true
+    eventLoop: false,
+    runtime: false,
+    http: false
   },
   standalone: false,
-  apmOptions: undefined,
+  apmOptions: {
+    publicKey: pm2AgentData.public_key,
+    secretKey: pm2AgentData.secret_key,
+    // TODO - so, we have to load one for each service...?
+    //  'indd-server'
+    // appName: 'api',
+    appName: 'indd-server',
+    // serverName: pm2AgentData.machine_name // This seems to vary when calling from the Websocket Transport object
+  },
+
+  // undefined,
 }
+console.log('default config:', defaultConfig)
 
 export default class PMX {
+
+  constructor({ xAppName, nameTag }) {
+    if (xAppName) {
+      console.log('PMX constructor, instance setting xAppName to:', xAppName)
+      this.xAppName = xAppName
+    }
+    if (nameTag) {
+      console.log('PMX constructor, instance setting xAppName to:', xAppName)
+      this.nameTag = nameTag
+    }
+  }
+
+  private xAppName?: string
+  private nameTag?: string
 
   private initialConfig: IOConfig
   private featureManager: FeatureManager = new FeatureManager()
@@ -72,35 +113,56 @@ export default class PMX {
   private actionService: ActionService | null = null
   private metricService: MetricService | null = null
   private runtimeStatsService: RuntimeStatsService | null = null
-  private logger: Function = Debug('axm:main')
+  private logger = (...args) => console.log('[pmx]', ...args)
+  // ebug('axm:main')
   private initialized: boolean = false
   public Entrypoint: { new(): Entrypoint } = Entrypoint
+
+
+  getId() {
+    return `${this.xAppName}(${this.nameTag})`
+  }
+
 
   /**
    * Init the APM instance, you should *always* init it before using any method
    */
-  init (config?: IOConfig) {
+  init(config?: IOConfig) {
     const callsite = (new Error().stack || '').split('\n')[2]
     if (callsite && callsite.length > 0) {
       this.logger(`init from ${callsite}`)
+    } else {
+      console.log('initializing PMX, without calling location (just via import/require?)')
     }
 
     if (this.initialized === true) {
       this.logger(`Calling init but was already the case, destroying and recreating`)
       this.destroy()
     }
-    if (config === undefined) {
-      config = defaultConfig
-    }
+    // if (config === undefined) {
+    config = defaultConfig
+
+    // }
     if (!config.standalone) {
-      const autoStandalone = process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME
+      console.log('NOTE: Manually setting autostandalone (and subsequently standalone) to be true.')
+      const autoStandalone = true
+      // console.log('Checking values in .env again: process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME:',
+      //   [process.env.PM2_SECRET_KEY, process.env.PM2_PUBLIC_KEY, process.env.PM2_APP_NAME])
+      console.log('autoStandalone is', String(autoStandalone))
       config.standalone = !!autoStandalone
       config.apmOptions = autoStandalone ? {
-        secretKey: process.env.PM2_SECRET_KEY,
-        publicKey: process.env.PM2_PUBLIC_KEY,
+        secretKey: process.env.PM2_SECRET_KEY || pm2AgentData.secret_key,
+        publicKey: process.env.PM2_PUBLIC_KEY || pm2AgentData.public_key,
         appName: process.env.PM2_APP_NAME
       } as TransportConfig : undefined
     }
+
+    if (config.apmOptions && this.xAppName) {
+      console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
+      // console.log("Setting pmx config first to defaultConfig of value:", defaultConfig)
+      config.apmOptions.appName = this.xAppName
+    }
+    // console.log('Config after standalone checks:', config)
 
     // Register the transport before any other service
     this.transport = createTransport(config.standalone === true ? 'websocket' : 'ipc', config.apmOptions as TransportConfig)
@@ -143,7 +205,7 @@ export default class PMX {
   /**
    * Destroy the APM instance, every method will stop working afterwards
    */
-  destroy () {
+  destroy() {
     this.logger('destroy')
     this.featureManager.destroy()
 
@@ -168,7 +230,7 @@ export default class PMX {
   /**
    * Fetch current configuration of the APM
    */
-  getConfig (): IOConfig {
+  getConfig(): IOConfig {
     return this.initialConfig
   }
 
@@ -176,7 +238,8 @@ export default class PMX {
    * Notify an error to PM2 Plus/Enterprise, note that you can attach a context to it
    * to provide more insight about the error
    */
-  notifyError (error: Error | string | {}, context?: ErrorContext) {
+  notifyError(error: Error | string | {}, context?: ErrorContext) {
+    console.log('In notify error fn, for error:', error, '- with context:', context)
     const notify = this.featureManager.get('notify') as NotifyFeature
     return notify.notifyError(error, context)
   }
@@ -184,7 +247,7 @@ export default class PMX {
   /**
    * Register metrics in bulk
    */
-  metrics (metric: MetricBulk | Array<MetricBulk>): any[] {
+  metrics(metric: MetricBulk | Array<MetricBulk>): any[] {
 
     const res: any[] = []
     // tslint:disable-next-line
@@ -194,7 +257,7 @@ export default class PMX {
       return []
     }
 
-    let metrics: Array<MetricBulk> = !Array.isArray(metric) ? [ metric ] : metric
+    let metrics: Array<MetricBulk> = !Array.isArray(metric) ? [metric] : metric
     for (let metric of metrics) {
       if (typeof metric.name !== 'string') {
         console.error(`Trying to create a metrics without a name`, metric)
@@ -207,23 +270,23 @@ export default class PMX {
         metric.type = MetricType.gauge
       }
       switch (metric.type) {
-        case MetricType.counter : {
+        case MetricType.counter: {
           res.push(this.counter(metric))
           continue
         }
-        case MetricType.gauge : {
+        case MetricType.gauge: {
           res.push(this.gauge(metric))
           continue
         }
-        case MetricType.histogram : {
+        case MetricType.histogram: {
           res.push(this.histogram(metric as any))
           continue
         }
-        case MetricType.meter : {
+        case MetricType.meter: {
           res.push(this.meter(metric))
           continue
         }
-        case MetricType.metric : {
+        case MetricType.metric: {
           res.push(this.gauge(metric))
           continue
         }
@@ -242,7 +305,7 @@ export default class PMX {
   /**
    * Create an histogram metric
    */
-  histogram (config: HistogramOptions): Histogram {
+  histogram(config: HistogramOptions): Histogram {
     // tslint:disable-next-line
     if (typeof config === 'string') {
       config = {
@@ -262,7 +325,7 @@ export default class PMX {
   /**
    * Create a gauge metric
    */
-  metric (config: Metric): Gauge {
+  metric(config: Metric): Gauge {
     // tslint:disable-next-line
     if (typeof config === 'string') {
       config = {
@@ -280,7 +343,7 @@ export default class PMX {
   /**
    * Create a gauge metric
    */
-  gauge (config: Metric): Gauge {
+  gauge(config: Metric): Gauge {
     // tslint:disable-next-line
     if (typeof config === 'string') {
       config = {
@@ -298,7 +361,7 @@ export default class PMX {
   /**
    * Create a counter metric
    */
-  counter (config: Metric): Counter {
+  counter(config: Metric): Counter {
     // tslint:disable-next-line
     if (typeof config === 'string') {
       config = {
@@ -317,7 +380,7 @@ export default class PMX {
   /**
    * Create a meter metric
    */
-  meter (config: Metric): Meter {
+  meter(config: Metric): Meter {
     // tslint:disable-next-line
     if (typeof config === 'string') {
       config = {
@@ -337,7 +400,7 @@ export default class PMX {
    * Register a custom action that will be executed when the someone called
    * it from the API
    */
-  action (name: string, opts?: Object, fn?: Function) {
+  action(name: string, opts?: Object, fn?: Function) {
     // backward compatiblity
     // tslint:disable-next-line
     if (typeof name === 'object') {
@@ -354,7 +417,7 @@ export default class PMX {
     return this.actionService.registerAction(name, opts, fn)
   }
 
-  onExit (callback: Function) {
+  onExit(callback: Function) {
     // tslint:disable-next-line
     if (typeof callback === 'function') {
       const onExit = require('signal-exit')
@@ -369,12 +432,12 @@ export default class PMX {
    *
    * The feature has been removed from PM2 Plus and will be removed in future release
    */
-  emit (name: string, data: Object) {
+  emit(name: string, data: Object) {
     const events = this.featureManager.get('events') as EventsFeature
     return events.emit(name, data)
   }
 
-  initModule (opts: any, cb?: Function) {
+  initModule(opts: any, cb?: Function) {
     if (!opts) opts = {}
 
     if (opts.reference) {
@@ -387,9 +450,9 @@ export default class PMX {
     }, opts)
 
     opts.widget = Object.assign({
-      type : 'generic',
-      logo : 'https://app.keymetrics.io/img/logo/keymetrics-300.png',
-      theme            : ['#111111', '#1B2228', '#807C7C', '#807C7C']
+      type: 'generic',
+      logo: 'https://app.keymetrics.io/img/logo/keymetrics-300.png',
+      theme: ['#111111', '#1B2228', '#807C7C', '#807C7C']
     }, opts.widget)
 
     opts.isModule = true
@@ -402,7 +465,7 @@ export default class PMX {
    * Return a custom express middleware that will send an error to the backend
    * with all the details of the http request
    */
-  expressErrorHandler () {
+  expressErrorHandler() {
     const notify = this.featureManager.get('notify') as NotifyFeature
     return notify.expressErrorHandler()
   }
@@ -411,7 +474,7 @@ export default class PMX {
    * Return a custom koa middleware that will send an error to the backend
    * with all the details of the http request
    */
-  koaErrorHandler () {
+  koaErrorHandler() {
     const notify = this.featureManager.get('notify') as NotifyFeature
     return notify.koaErrorHandler()
   }
