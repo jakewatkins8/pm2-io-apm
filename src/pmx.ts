@@ -84,7 +84,9 @@ export const defaultConfig: IOConfig = {
     //  'indd-server'
     // appName: 'api',
     appName: 'indd-server',
-    // serverName: pm2AgentData.machine_name // This seems to vary when calling from the Websocket Transport object
+    // Passing this as serverName seems to avoid the issue of multiple differently named "servers" appearing 
+    // in the PM2.io dashboard:
+    serverName: pm2AgentData.machine_name // This seems to vary when calling from the Websocket Transport object, if we're not setting it here, or setting it later in the fn.
   },
 
   // undefined,
@@ -153,7 +155,8 @@ export default class PMX {
       config.apmOptions = autoStandalone ? {
         secretKey: process.env.PM2_SECRET_KEY || pm2AgentData.secret_key,
         publicKey: process.env.PM2_PUBLIC_KEY || pm2AgentData.public_key,
-        appName: process.env.PM2_APP_NAME
+        appName: process.env.PM2_APP_NAME,
+        serverName: pm2AgentData.machine_name
       } as TransportConfig : undefined
     }
 
@@ -161,6 +164,9 @@ export default class PMX {
       console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
       // console.log("Setting pmx config first to defaultConfig of value:", defaultConfig)
       config.apmOptions.appName = this.xAppName
+    }
+    if (config.apmOptions?.serverName) {
+      console.log('Using a config serverName value of:', config.apmOptions.serverName)
     }
     // console.log('Config after standalone checks:', config)
 
