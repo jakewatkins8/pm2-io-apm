@@ -1,4 +1,5 @@
 {
+  "//NOTICE//": "NOTICE: As per this project's license, the following source file has been modified from its original content as part of this fork repository.",
   "name": "@jakewatkins8/pm2-io-apm-fork",
   "version": "7.0.0",
   "description": "Fork of the PM2.io NodeJS APM",

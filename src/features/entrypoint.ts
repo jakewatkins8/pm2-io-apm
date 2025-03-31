@@ -1,4 +1,6 @@
-
+/** NOTICE: 
+As per this project's license, the following source file has been modified from its original content as part of this fork repository. 
+*/
 import IO, { IOConfig } from '../pmx'
 const IO_KEY = Symbol.for('@pm2/io')
 

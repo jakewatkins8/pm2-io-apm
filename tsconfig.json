@@ -1,8 +1,13 @@
+/** NOTICE: 
+As per this project's license, the following source file has been modified from its original content as part of this fork repository. 
+*/
 {
   "compilerOptions": {
     "target": "es6",
     "outDir": "build/main",
-    "rootDirs": ["src"],
+    "rootDirs": [
+      "src"
+    ],
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
@@ -13,7 +18,7 @@
     "downlevelIteration": true,
     "resolveJsonModule": true,
     "removeComments": true,
-    "lib" : [
+    "lib": [
       "es6"
     ],
     "types": [

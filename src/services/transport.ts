@@ -1,4 +1,6 @@
-
+/** NOTICE: 
+As per this project's license, the following source file has been modified from its original content as part of this fork repository. 
+*/
 import { Action } from './actions'
 import { Metric, InternalMetric } from './metrics'
 import { IPCTransport } from '../transports/IPCTransport'
