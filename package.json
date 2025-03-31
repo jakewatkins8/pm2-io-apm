@@ -1,7 +1,6 @@
 {
   "//NOTICE//": "NOTICE: As per this project's license, the following source file has been modified from its original content as part of this fork repository.",
   "name": "@apagoinc/pm2-io-apm-fork",
-  "private": true,
   "version": "7.0.0",
   "description": "Fork of the PM2.io NodeJS APM",
   "main": "build/main/index.js",
