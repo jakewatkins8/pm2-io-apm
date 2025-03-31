@@ -6,7 +6,8 @@ import * as Debug from 'debug'
 export class EventsFeature implements Feature {
 
   private transport: Transport | undefined
-  private logger: Function = (...args) => console.log('[events.ts]', ...args)
+  private logger: Function = (...args) => {}
+  // console.log('[events.ts]', ...args)
   // Debug('axm:features:events')
 
   init (): void {

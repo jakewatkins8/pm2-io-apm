@@ -13,13 +13,15 @@ configDotEnv()
 export class IPCTransport extends EventEmitter2 implements Transport {
 
   private initiated: Boolean = false // tslint:disable-line
-  private logger: Function = (...args) => console.log('[IPCTransport]', ...args)
+  private logger: Function = (...args) => {}
+  // Debug('axm:transport:ipc')
+  // console.log('[IPCTransport]', ...args)
   // Debug('axm:transport:ipc')
   private onMessage: any | undefined
   private autoExitHandle: NodeJS.Timer | undefined
 
   init(config?: TransportConfig): Transport {
-    this.logger('Init new transport service')
+    // this.logger('Init new transport service')
     if (this.initiated === true) {
       console.error(`Trying to re-init the transport, please avoid`)
       return this
@@ -27,7 +29,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
     this.initiated = true
     this.logger('Agent launched')
     this.onMessage = (data?: Object) => {
-      this.logger(`Received reverse message from IPC`)
+      // this.logger(`Received reverse message from IPC`)
       this.emit('data', data)
     }
     process.on('message', this.onMessage)
@@ -94,7 +96,7 @@ export class IPCTransport extends EventEmitter2 implements Transport {
   }
 
   send(channel, payload) {
-    console.log('In send fn for transport with following channel and payload. Channel:', channel, 'payload:', String(payload || '').substring(0, 50) + '...')
+    // console.log('In send fn for transport with following channel and payload. Channel:', channel, 'payload:', String(payload || '').substring(0, 50) + '...')
 
 
     // child_process?

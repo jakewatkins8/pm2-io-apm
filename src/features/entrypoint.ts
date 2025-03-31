@@ -2,8 +2,8 @@
 import IO, { IOConfig } from '../pmx'
 const IO_KEY = Symbol.for('@pm2/io')
 
-console.log('IO_KEY:', IO_KEY)
-console.log(IO_KEY)
+// console.log('IO_KEY:', IO_KEY)
+// console.log(IO_KEY)
 
 export class Entrypoint {
   private io: IO
@@ -30,7 +30,7 @@ export class Entrypoint {
 
         if (process && process.send) {
 
-          console.log('in pm2-io-apm entrypoint constructor - about to send process "ready"')
+          // console.log('in pm2-io-apm entrypoint constructor - about to send process "ready"')
 
           process.send('ready')
         }
@@ -66,7 +66,7 @@ export class Entrypoint {
   }
 
   conf (): IOConfig | undefined {
-    console.log('in this.conf() - about to return undefined?')
+    // console.log('in this.conf() - about to return undefined?')
     return undefined
   }
 }

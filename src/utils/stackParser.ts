@@ -135,9 +135,9 @@ export class StackTraceParser {
     if (userFrame === undefined) return null
 
     // get the whole context (all lines) and cache them if necessary
-    console.log('in stackParser parse fn - trying to get userFrame.file_name from cache, of value:', userFrame.file_name || ('no value'))
+    // console.log('in stackParser parse fn - trying to get userFrame.file_name from cache, of value:', userFrame.file_name || ('no value'))
     const context = this.cache.get(userFrame.file_name) as string[] | null
-    console.log('obtained context as:', String(context))
+    // console.log('obtained context as:', String(context))
     const source: string[] = []
     if (context === null || context.length === 0) return null
       // get line before the call

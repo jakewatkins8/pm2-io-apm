@@ -10,9 +10,9 @@ import * as fs from 'fs'
 export default class Configuration {
 
   static configureModule (opts) {
-    console.log('Setting up transport in configureModule')
+    // console.log('Setting up transport in configureModule')
     if (ServiceManager.get('transport')) {
-      console.log('Setting up options for transport in configureModule')
+      // console.log('Setting up options for transport in configureModule')
       ServiceManager.get('transport').setOptions(opts)
     }
   }

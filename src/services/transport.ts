@@ -85,15 +85,15 @@ export function createTransport (name: string, config: TransportConfig): Transpo
   // return transport
   switch (name) {
     case 'ipc': {
-      console.error(`Creating IPCTransport transport implementation: ${name}`)
-      console.log("IPC transport config:", config)
+      // console.error(`Creating IPCTransport transport implementation: ${name}`)
+      // console.log("IPC transport config:", config)
       const transport = new IPCTransport()
       transport.init(config)
       return transport
     }
     case 'websocket': {
-      console.error(`Creating WebsocketTransport transport implementation: ${name}`)
-      console.log("ws transport config:", config)
+      // console.error(`Creating WebsocketTransport transport implementation: ${name}`)
+      // console.log("ws transport config:", config)
       const transport = new WebsocketTransport()
       transport.init(config)
       return transport

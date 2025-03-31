@@ -29,13 +29,14 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
   private initiated: Boolean = false // tslint:disable-line
   /** @property a short ID just to identify different instances in debugging */
   private nameTag: string | undefined
-  private logger: Function = (...args) => console.log('[WS]' + (this.nameTag ? `(${this.nameTag}) ` : '') + (this.config?.appName ? `[${this.config?.appName}]` : ''), ...args)
+  private logger: Function = (...args) => {}
+  // console.log('[WS]' + (this.nameTag ? `(${this.nameTag}) ` : '') + (this.config?.appName ? `[${this.config?.appName}]` : ''), ...args)
 
 
   // Debug('axm:transport:websocket')
 
   init(config: TransportConfig): Transport {
-    this.logger('Initializing websocket transport with initial config of value:', config)
+    // this.logger('Initializing websocket transport with initial config of value:', config)
     if (this.initiated === true) {
       console.error(`Trying to re-init the transport, please avoid`)
       return this
@@ -43,7 +44,7 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
     this.initiated = true
     const AgentNode = require('@pm2/agent-node')
     this.nameTag = randomBytes(3).toString('hex')
-    this.logger('Init\'ing new transport service', `(instance ${this.nameTag})`)
+    // this.logger('Init\'ing new transport service', `(instance ${this.nameTag})`)
     this.config = config
     this.process = {
       axm_actions: [],
@@ -57,10 +58,10 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
     this.agent.sendLogs = config.sendLogs || false
     this.agent.start()
     this.agent.transport.on('**', (data) => {
-      this.logger(`Received reverse message from websocket transport`)
+      // this.logger(`Received reverse message from websocket transport`)
       this.emit('data', data)
     })
-    this.logger('Agent launched')
+    // this.logger('Agent launched')
     return this
   }
 
@@ -79,7 +80,7 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
   }
 
   addAction(action: Action) {
-    this.logger(`Adding action: ${action.name}:${action.type}`)
+    // this.logger(`Adding action: ${action.name}:${action.type}`)
     const serializedAction: SerializedAction = {
       action_name: action.name,
       action_type: action.type,
@@ -90,7 +91,7 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
   }
 
   setOptions(options) {
-    this.logger(`Setting options: [${Object.keys(options).join(',')}]`)
+    // this.logger(`Setting options: [${Object.keys(options).join(',')}]`)
     return this.process.axm_options = Object.assign(this.process.axm_options, options)
   }
 
@@ -111,13 +112,13 @@ export class WebsocketTransport extends EventEmitter2 implements Transport {
   }
 
   send(channel: string, payload: Object) {
-    this.logger('in send fn, for channel:', channel)
+    // this.logger('in send fn, for channel:', channel)
     return this.agent.send(channel, this.getFormattedPayload(channel, payload)) ? 0 : -1
   }
 
   destroy() {
     this.agent.transport.disconnect()
-    this.logger('destroying this WS transport.')
+    // this.logger('destroying this WS transport.')
   }
 
   removeListener() {

@@ -22,6 +22,7 @@ import { Entrypoint } from './features/entrypoint'
 import { readFileSync } from 'fs'
 import { config as configDotEnv } from 'dotenv'
 import { resolve as resolvePath } from 'path'
+// import { randomBytes } from 'crypto'
 
 // from 'build/main/pmx.js'
 // console.log('[pmx] - Location of file:', __dirname)
@@ -30,7 +31,7 @@ import { resolve as resolvePath } from 'path'
 // console.log('process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME:',
 //   [process.env.PM2_SECRET_KEY, process.env.PM2_PUBLIC_KEY, process.env.PM2_APP_NAME])
 
-console.log('process.env.PARENT_ENV:', process.env.PARENT_ENV)
+// console.log('process.env.PARENT_ENV:', process.env.PARENT_ENV)
 export class IOConfig {
   /**
    * Automatically catch unhandled errors
@@ -91,17 +92,17 @@ export const defaultConfig: IOConfig = {
 
   // undefined,
 }
-console.log('default config:', defaultConfig)
+// console.log('default config:', defaultConfig)
 
 export default class PMX {
 
   constructor({ xAppName, nameTag }) {
     if (xAppName) {
-      console.log('PMX constructor, instance setting xAppName to:', xAppName)
+      // console.log('PMX constructor, instance setting xAppName to:', xAppName)
       this.xAppName = xAppName
     }
     if (nameTag) {
-      console.log('PMX constructor, instance setting xAppName to:', xAppName)
+      // console.log('PMX constructor, instance setting xAppName to:', xAppName)
       this.nameTag = nameTag
     }
   }
@@ -115,7 +116,8 @@ export default class PMX {
   private actionService: ActionService | null = null
   private metricService: MetricService | null = null
   private runtimeStatsService: RuntimeStatsService | null = null
-  private logger = (...args) => console.log('[pmx]', ...args)
+  private logger = (...args) => { }
+  // console.log('[pmx]', ...args)
   // ebug('axm:main')
   private initialized: boolean = false
   public Entrypoint: { new(): Entrypoint } = Entrypoint
@@ -132,13 +134,13 @@ export default class PMX {
   init(config?: IOConfig) {
     const callsite = (new Error().stack || '').split('\n')[2]
     if (callsite && callsite.length > 0) {
-      this.logger(`init from ${callsite}`)
+      // this.logger(`init from ${callsite}`)
     } else {
-      console.log('initializing PMX, without calling location (just via import/require?)')
+      // console.log('initializing PMX, without calling location (just via import/require?)')
     }
 
     if (this.initialized === true) {
-      this.logger(`Calling init but was already the case, destroying and recreating`)
+      // this.logger(`Calling init but was already the case, destroying and recreating`)
       this.destroy()
     }
     // if (config === undefined) {
@@ -146,28 +148,28 @@ export default class PMX {
 
     // }
     if (!config.standalone) {
-      console.log('NOTE: Manually setting autostandalone (and subsequently standalone) to be true.')
+      // console.log('NOTE: Manually setting autostandalone (and subsequently standalone) to be true.')
       const autoStandalone = true
       // console.log('Checking values in .env again: process.env.PM2_SECRET_KEY && process.env.PM2_PUBLIC_KEY && process.env.PM2_APP_NAME:',
       //   [process.env.PM2_SECRET_KEY, process.env.PM2_PUBLIC_KEY, process.env.PM2_APP_NAME])
-      console.log('autoStandalone is', String(autoStandalone))
+      // console.log('autoStandalone is', String(autoStandalone))
       config.standalone = !!autoStandalone
       config.apmOptions = autoStandalone ? {
         secretKey: process.env.PM2_SECRET_KEY || pm2AgentData.secret_key,
         publicKey: process.env.PM2_PUBLIC_KEY || pm2AgentData.public_key,
         appName: process.env.PM2_APP_NAME,
-        serverName: pm2AgentData.machine_name
+        // serverName: `${pm2AgentData.machine_name}-${this.xAppName || randomBytes(3).toString('hex')}`
       } as TransportConfig : undefined
     }
 
     if (config.apmOptions && this.xAppName) {
-      console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
+      // console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
       // console.log("Setting pmx config first to defaultConfig of value:", defaultConfig)
       config.apmOptions.appName = this.xAppName
     }
-    if (config.apmOptions?.serverName) {
-      console.log('Using a config serverName value of:', config.apmOptions.serverName)
-    }
+    // if (config.apmOptions?.serverName) {
+      // console.log('[pm2-io-apm-fork] Using a config serverName value of:', config.apmOptions.serverName)
+    // }
     // console.log('Config after standalone checks:', config)
 
     // Register the transport before any other service
@@ -245,7 +247,7 @@ export default class PMX {
    * to provide more insight about the error
    */
   notifyError(error: Error | string | {}, context?: ErrorContext) {
-    console.log('In notify error fn, for error:', error, '- with context:', context)
+    // console.log('In notify error fn, for error:', error, '- with context:', context)
     const notify = this.featureManager.get('notify') as NotifyFeature
     return notify.notifyError(error, context)
   }

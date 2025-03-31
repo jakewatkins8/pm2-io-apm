@@ -33,7 +33,8 @@ const optionsDefault: NotifyOptions = {
 export class NotifyFeature implements Feature {
 
   // TODO - make logs visible
-  private logger: Function = (...args) => console.log('[notify]', ...args)
+  private logger: Function = (...args) => {}
+  //  console.log('[notify]', ...args)
   private transport: Transport | undefined
   private cache: Cache
   private stackParser: StackTraceParser
@@ -42,7 +43,7 @@ export class NotifyFeature implements Feature {
     if (options === undefined) {
       options = optionsDefault
     }
-    this.logger('init')
+    // this.logger('init')
     this.transport = ServiceManager.get('transport')
     if (this.transport === undefined) {
       return this.logger(`Failed to load transporter service`)
@@ -56,10 +57,10 @@ export class NotifyFeature implements Feature {
     this.cache = new Cache({
       miss: (key) => {
         try {
-          console.log('In notify cache, trying to resolve key of value:', key, ' - as a path...')
+          // console.log('In notify cache, trying to resolve key of value:', key, ' - as a path...')
           const content = fs.readFileSync(path.resolve(key))
           const resolved = content.toString().split(/\r?\n/)
-          console.log('Got final value as', resolved)
+          // console.log('Got final value as', resolved)
           return resolved;
         } catch (err) {
           this.logger('Error while trying to get file from FS : %s', err.message || err)
