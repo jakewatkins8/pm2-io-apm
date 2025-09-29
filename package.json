@@ -48,6 +48,7 @@
     "@types/mongodb": "~3.1.19",
     "@types/node": "~10.12.21",
     "@types/redis": "~2.8.10",
+    "@types/yargs": "^17.0.10",
     "chai": "4.1.2",
     "express": "^4.17.1",
     "ioredis": "^4.16.3",
@@ -64,9 +65,7 @@
     "ts-node": "~7.0.1",
     "tslint": "~5.11.0",
     "tslint-config-standard": "~8.0.1",
-    "typescript": "^5.8.2",
-    "vue": "^3.5.13",
-    "vue-server-renderer": "^2.2.6"
+    "typescript": "^5.8.2"
   },
   "keywords": [],
   "nyc": {
@@ -83,7 +82,7 @@
     "all": true
   },
   "dependencies": {
-    "@pm2/agent-node": "^1.1.10",
+    "@pm2/agent-node": "^1.0.7",
     "async": "~2.6.1",
     "debug": "~4.3.1",
     "dotenv": "^16.4.7",
@@ -92,6 +91,7 @@
     "semver": "~7.5.4",
     "shimmer": "^1.2.0",
     "signal-exit": "^3.0.3",
-    "tslib": "1.9.3"
+    "tslib": "1.9.3",
+    "yargs": "^17.5.1"
   }
 }

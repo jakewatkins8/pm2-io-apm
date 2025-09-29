@@ -3,12 +3,14 @@ As per this project's license, the following source file has been modified from 
 */
 import PMX from './pmx'
 
+const yargs = require('yargs')
 const tag = require('crypto').randomBytes(3).toString('hex')
 const log = (...args) => {}
 // console.log(`[src/index](${tag})`, ...args)
 
-// console.log('main Module:', process.mainModule)
-// console.log('process argv:', process.argv)
+console.log('main Module:', process.mainModule)
+console.log('process argv:', process.argv)
+
 
 const callingModulePath = String(process.mainModule?.['path'])
 
@@ -50,12 +52,26 @@ if (callingAppName === 'monitor') {
 }
 const monitorAppName = monitorTarget ? `monitor:${monitorTarget}` : undefined
 
+// If a --pm2Tag flag with a value was passed, we will use that as the app's name. This is the preferred way, to avoid naming conflicts.
+const yargv = yargs(process.argv.slice(2)).options({
+    pm2Tag: { type: 'string' }
+}).parseSync();
+
+const pm2AppName = yargv.pm2Tag || undefined
+
+if (pm2AppName) {
+    console.log('Got a --pm2Tag value of:', pm2AppName, '- will use this name to link the app to PM2.io')
+} else {
+    console.log('WARNING - Could not get a --pm2Tag value - will now be using the following name to link this app to PM2.io:', monitorAppName || callingAppName)
+}
+
+
 const IO_KEY = Symbol.for('@pm2/io')
 // log(' - global IO_KEY:', IO_KEY)
 const isAlreadyHere = (Object.getOwnPropertySymbols(global).indexOf(IO_KEY) > -1)
 
 // log(' - isAlreadyHere:', isAlreadyHere)
-const io: PMX = isAlreadyHere ? global[IO_KEY] as PMX : new PMX({ xAppName: monitorAppName || callingAppName, nameTag: tag }).init()
+const io: PMX = isAlreadyHere ? global[IO_KEY] as PMX : new PMX({ xAppName: pm2AppName || monitorAppName || callingAppName, nameTag: tag }).init()
 // log(' - Value of io:', io)
 global[IO_KEY] = io
 

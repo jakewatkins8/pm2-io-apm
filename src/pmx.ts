@@ -166,7 +166,7 @@ export default class PMX {
     }
 
     if (config.apmOptions && this.xAppName) {
-      // console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
+      console.log('Got xAppName of:', this.xAppName, '- using for this IO instance')
       // console.log("Setting pmx config first to defaultConfig of value:", defaultConfig)
       config.apmOptions.appName = this.xAppName
     }
